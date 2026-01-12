@@ -77,11 +77,11 @@
 
   /* Linear/Notion style sidebar */
   --sidebar-bg: #fafafa;
-  --sidebar-border: #ebebeb;
-  --sidebar-item-hover: #f3f3f3;
-  --sidebar-item-active: #e8e8e8;
+  --sidebar-border: #e5e5e5;
+  --sidebar-item-hover: #f0f0f0;
+  --sidebar-item-active: #e0e0e0;
   --sidebar-text: #37352f;
-  --sidebar-text-muted: #9b9a97;
+  --sidebar-text-muted: #787774;
 }
 
 @layer base {

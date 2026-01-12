@@ -45,10 +45,10 @@ export function ConversationItem({
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors duration-150',
+        'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150',
         isSelected
-          ? 'bg-sidebar-item-active'
-          : 'hover:bg-sidebar-item-hover'
+          ? 'bg-sidebar-item-active border-l-2 border-l-accent'
+          : 'hover:bg-sidebar-item-hover border-l-2 border-l-transparent'
       )}
       onClick={() => onSelect(conversation.id)}
       onMouseEnter={() => setShowDelete(true)}
