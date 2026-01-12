@@ -26,10 +26,10 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
         )}
       >
         {/* Render content with line breaks preserved */}
-        {content.split('\n').map((line, index) => (
+        {content.split('\n').map((line, index, arr) => (
           <span key={index}>
             {line}
-            {index < content.split('\n').length - 1 && <br />}
+            {index < arr.length - 1 && <br />}
           </span>
         ))}
       </div>

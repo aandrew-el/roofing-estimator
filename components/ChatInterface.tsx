@@ -118,9 +118,9 @@ export function ChatInterface({
     setInput('');
     setIsLoading(true);
 
-    // Save user message to database
+    // Save user message to database (pass ID explicitly for race condition handling)
     if (currentConvId) {
-      await addMessage('user', userContent);
+      await addMessage('user', userContent, currentConvId);
       onTouch(currentConvId);
     }
 
@@ -154,9 +154,9 @@ export function ChatInterface({
 
       setLocalMessages((prev) => [...prev, assistantMessage]);
 
-      // Save assistant message to database
+      // Save assistant message to database (pass ID explicitly for race condition handling)
       if (currentConvId) {
-        await addMessage('assistant', data.message);
+        await addMessage('assistant', data.message, currentConvId);
       }
 
       // If estimate was generated, display it

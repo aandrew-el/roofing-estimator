@@ -172,18 +172,21 @@ export function useMessages(conversationId: string | null) {
     }
   }, [conversationId]);
 
-  // Add a message
+  // Add a message - accepts optional targetId to handle race conditions
+  // when creating new conversations
   const addMessage = useCallback(async (
     role: 'user' | 'assistant',
-    content: string
+    content: string,
+    targetConversationId?: string
   ): Promise<Message | null> => {
-    if (!conversationId) return null;
+    const convId = targetConversationId || conversationId;
+    if (!convId) return null;
 
     try {
       const { data, error } = await supabase
         .from('messages')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: convId,
           role,
           content,
         })
@@ -192,8 +195,10 @@ export function useMessages(conversationId: string | null) {
 
       if (error) throw error;
 
-      // Add to local state
-      setMessages(prev => [...prev, data]);
+      // Only add to local state if it's for the current conversation
+      if (convId === conversationId) {
+        setMessages(prev => [...prev, data]);
+      }
       return data;
     } catch (err) {
       console.error('Error adding message:', err);
