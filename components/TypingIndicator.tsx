@@ -1,0 +1,24 @@
+'use client';
+
+export function TypingIndicator() {
+  return (
+    <div className="flex justify-start animate-in fade-in duration-200">
+      <div className="bg-surface border border-border rounded-xl rounded-bl-sm px-4 py-3">
+        <div className="flex items-center gap-1">
+          <div
+            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+            style={{ animationDelay: '0ms' }}
+          />
+          <div
+            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+            style={{ animationDelay: '150ms' }}
+          />
+          <div
+            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+            style={{ animationDelay: '300ms' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
