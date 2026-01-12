@@ -55,8 +55,8 @@ export function ConversationItem({
       onMouseLeave={() => setShowDelete(false)}
     >
       <MessageSquare className={cn(
-        "h-4 w-4 shrink-0",
-        isSelected ? "text-accent" : "text-sidebar-text-muted"
+        "h-4 w-4 shrink-0 transition-colors",
+        isSelected ? "text-blue-600" : "text-sidebar-text-muted"
       )} />
 
       <div className="flex-1 min-w-0">
