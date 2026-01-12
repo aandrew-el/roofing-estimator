@@ -47,17 +47,20 @@ export function ConversationItem({
       className={cn(
         'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-150',
         isSelected
-          ? 'bg-sidebar-item-active border-l-2 border-l-accent'
-          : 'hover:bg-sidebar-item-hover border-l-2 border-l-transparent'
+          ? 'bg-blue-50 border-l-[3px] border-l-accent font-medium'
+          : 'hover:bg-sidebar-item-hover border-l-[3px] border-l-transparent'
       )}
       onClick={() => onSelect(conversation.id)}
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => setShowDelete(false)}
     >
-      <MessageSquare className="h-4 w-4 text-sidebar-text-muted shrink-0" />
+      <MessageSquare className={cn(
+        "h-4 w-4 shrink-0",
+        isSelected ? "text-accent" : "text-sidebar-text-muted"
+      )} />
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-sidebar-text truncate">
+        <p className="text-sm font-medium text-sidebar-text block truncate max-w-[160px]">
           {conversation.title}
         </p>
         <p className="text-xs text-sidebar-text-muted">

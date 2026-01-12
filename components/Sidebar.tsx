@@ -77,7 +77,7 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="px-3 py-3 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-text-muted text-center">
+        <p className="text-xs text-sidebar-text text-center opacity-60">
           AI-Powered Estimates
         </p>
       </div>
