@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { SidebarToggle } from './SidebarToggle';
 import { ConversationList } from './ConversationList';
-import { Plus, Home } from 'lucide-react';
+import { Plus, PenLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/lib/database.types';
 
@@ -38,28 +38,21 @@ export function Sidebar({
       )}
     >
       {/* Header */}
-      <div className="h-14 px-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-accent rounded-md flex items-center justify-center">
-            <Home className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-sm font-semibold text-sidebar-text">
-            Roofing Estimator
-          </span>
-        </div>
+      <div className="h-14 px-4 flex items-center justify-between shrink-0">
+        <span className="text-sm font-semibold text-sidebar-text tracking-tight">
+          Roofing Estimator
+        </span>
         <SidebarToggle isCollapsed={isCollapsed} onToggle={onToggle} />
       </div>
 
-      <Separator className="bg-sidebar-border" />
-
       {/* New Chat Button */}
-      <div className="px-3 py-3">
+      <div className="px-3 pb-2">
         <Button
           onClick={onNewChat}
-          variant="outline"
-          className="w-full justify-start gap-2 h-9 text-sm font-medium border-sidebar-border hover:bg-sidebar-item-hover"
+          variant="ghost"
+          className="w-full justify-start gap-2 h-8 text-sm font-normal text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-item-hover"
         >
-          <Plus className="h-4 w-4" />
+          <PenLine className="h-3.5 w-3.5" />
           New Estimate
         </Button>
       </div>
@@ -76,9 +69,9 @@ export function Sidebar({
       </ScrollArea>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-text text-center opacity-60">
-          AI-Powered Estimates
+      <div className="px-4 py-4">
+        <p className="text-[11px] text-sidebar-text-muted text-center">
+          Powered by AI
         </p>
       </div>
     </aside>

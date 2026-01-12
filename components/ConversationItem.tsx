@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/lib/database.types';
 
@@ -54,9 +54,10 @@ export function ConversationItem({
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={() => setShowDelete(false)}
     >
-      <MessageSquare className={cn(
-        "h-4 w-4 shrink-0 transition-colors",
-        isSelected ? "text-blue-600" : "text-sidebar-text-muted"
+      {/* Minimal dot indicator */}
+      <div className={cn(
+        "w-1.5 h-1.5 rounded-full shrink-0 transition-colors",
+        isSelected ? "bg-blue-600" : "bg-gray-300"
       )} />
 
       <div className="flex-1 min-w-0">

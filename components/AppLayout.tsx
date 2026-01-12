@@ -83,17 +83,17 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="h-14 border-b border-border bg-background flex items-center px-4 shrink-0">
+        <header className="h-12 border-b border-gray-100 bg-white flex items-center px-4 shrink-0">
           <div className="flex items-center gap-3 w-full">
             {/* Mobile menu trigger */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden h-8 w-8">
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-4 w-4" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[280px]">
+              <SheetContent side="left" className="p-0 w-[260px]">
                 {sidebarContent}
               </SheetContent>
             </Sheet>
@@ -109,7 +109,7 @@ export function AppLayout() {
 
             {/* Title */}
             <div className="flex-1">
-              <h1 className="text-base font-semibold text-foreground">
+              <h1 className="text-sm font-medium text-gray-700 truncate">
                 {currentConversationId
                   ? conversations.find(c => c.id === currentConversationId)?.title || 'Estimate'
                   : 'New Estimate'

@@ -19,10 +19,10 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
     >
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+          'max-w-[75%] rounded-xl px-4 py-2.5 text-[14px] leading-relaxed',
           isUser
-            ? 'bg-accent text-white rounded-br-md'
-            : 'bg-white border border-border text-foreground rounded-bl-md'
+            ? 'bg-accent text-white'
+            : 'bg-gray-50 text-foreground'
         )}
       >
         {/* Render content with line breaks preserved */}

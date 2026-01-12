@@ -235,23 +235,24 @@ export function ChatInterface({
 
       {/* Input area */}
       {!estimate && (
-        <div className="border-t border-border bg-background p-4">
-          <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
+        <div className="border-t border-gray-100 bg-white px-4 py-3">
+          <form onSubmit={handleSubmit} className="flex gap-2 max-w-2xl mx-auto">
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your roofing project..."
+              placeholder="Message..."
               disabled={isLoading}
-              className="flex-1 h-12 text-base"
+              className="flex-1 h-10 text-sm border-gray-200 focus:border-gray-300 focus:ring-0 rounded-lg"
             />
             <Button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="h-12 w-12 bg-accent hover:bg-accent-hover"
+              size="sm"
+              className="h-10 px-4 bg-accent hover:bg-accent/90 rounded-lg"
             >
-              <ArrowRight className="h-5 w-5" />
-              <span className="sr-only">Send message</span>
+              <ArrowRight className="h-4 w-4" />
+              <span className="sr-only">Send</span>
             </Button>
           </form>
         </div>
