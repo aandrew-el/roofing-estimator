@@ -1,5 +1,12 @@
 // TypeScript interfaces for AI Roofing Estimator
 
+// Re-export database types for convenience
+export type {
+  Conversation,
+  Message as DbMessage,
+  StoredEstimate,
+} from './database.types';
+
 export interface RoofingProject {
   roofSqft: number;
   pitch: string;

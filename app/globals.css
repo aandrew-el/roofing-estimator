@@ -30,6 +30,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Sidebar colors */
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-item-hover: var(--sidebar-item-hover);
+  --color-sidebar-item-active: var(--sidebar-item-active);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-text-muted: var(--sidebar-text-muted);
 }
 
 :root {
@@ -66,6 +74,14 @@
   --border: #e5e7eb;
   --input: #e5e7eb;
   --ring: #0f4c75;
+
+  /* Linear/Notion style sidebar */
+  --sidebar-bg: #fafafa;
+  --sidebar-border: #ebebeb;
+  --sidebar-item-hover: #f3f3f3;
+  --sidebar-item-active: #e8e8e8;
+  --sidebar-text: #37352f;
+  --sidebar-text-muted: #9b9a97;
 }
 
 @layer base {
@@ -138,4 +154,13 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
+}
+
+/* Sidebar scrollbar - more subtle */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--sidebar-border);
 }

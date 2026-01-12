@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChatMessage } from './ChatMessage';
@@ -8,6 +8,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { EstimateDisplay } from './EstimateDisplay';
 import { INITIAL_MESSAGE } from '@/lib/prompts';
 import { Estimate } from '@/lib/types';
+import { useMessages } from '@/hooks/useConversations';
 import { ArrowRight } from 'lucide-react';
 
 interface Message {
@@ -16,8 +17,20 @@ interface Message {
   content: string;
 }
 
-export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([
+interface ChatInterfaceProps {
+  conversationId: string | null;
+  onConversationCreated: (title: string) => Promise<string | null>;
+  onUpdateTitle: (id: string, title: string) => void;
+  onTouch: (id: string) => void;
+}
+
+export function ChatInterface({
+  conversationId,
+  onConversationCreated,
+  onUpdateTitle,
+  onTouch,
+}: ChatInterfaceProps) {
+  const [localMessages, setLocalMessages] = useState<Message[]>([
     {
       id: 'initial',
       role: 'assistant',
@@ -27,39 +40,96 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFirstMessage = useRef(true);
+
+  // Database messages hook
+  const { messages: dbMessages, addMessage, isLoading: messagesLoading } = useMessages(conversationId);
+
+  // Sync messages when conversation changes
+  useEffect(() => {
+    if (conversationId !== activeConversationId) {
+      setActiveConversationId(conversationId);
+      isFirstMessage.current = true;
+
+      if (conversationId && dbMessages.length > 0) {
+        // Load messages from database
+        setLocalMessages(
+          dbMessages.map((m) => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }))
+        );
+        isFirstMessage.current = false;
+      } else {
+        // Reset to initial state for new chat
+        setLocalMessages([
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: INITIAL_MESSAGE,
+          },
+        ]);
+      }
+      setEstimate(null);
+      setInput('');
+    }
+  }, [conversationId, dbMessages, activeConversationId]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [localMessages, isLoading]);
 
-  // Focus input on mount
+  // Focus input on mount and conversation change
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+  }, [conversationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const userContent = input.trim();
+    let currentConvId = conversationId;
+
+    // Create conversation on first real message
+    if (!currentConvId && isFirstMessage.current) {
+      // Use first few words as title
+      const title = userContent.slice(0, 50) + (userContent.length > 50 ? '...' : '');
+      currentConvId = await onConversationCreated(title);
+      if (!currentConvId) {
+        console.error('Failed to create conversation');
+        return;
+      }
+      isFirstMessage.current = false;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: userContent,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setLocalMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+
+    // Save user message to database
+    if (currentConvId) {
+      await addMessage('user', userContent);
+      onTouch(currentConvId);
+    }
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
+          messages: [...localMessages, userMessage].map((m) => ({
             role: m.role,
             content: m.content,
           })),
@@ -82,7 +152,12 @@ export function ChatInterface() {
         content: data.message,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setLocalMessages((prev) => [...prev, assistantMessage]);
+
+      // Save assistant message to database
+      if (currentConvId) {
+        await addMessage('assistant', data.message);
+      }
 
       // If estimate was generated, display it
       if (data.estimate) {
@@ -96,14 +171,14 @@ export function ChatInterface() {
         content:
           'I apologize, but I encountered an error processing your request. Please try again.',
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setLocalMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setMessages([
+  const handleReset = useCallback(() => {
+    setLocalMessages([
       {
         id: 'initial',
         role: 'assistant',
@@ -112,22 +187,31 @@ export function ChatInterface() {
     ]);
     setEstimate(null);
     setInput('');
+    isFirstMessage.current = true;
     inputRef.current?.focus();
-  };
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            role={message.role}
-            content={message.content}
-          />
-        ))}
-        {isLoading && <TypingIndicator />}
-        {estimate && <EstimateDisplay estimate={estimate} onReset={handleReset} />}
+        {messagesLoading && conversationId ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-pulse text-muted-foreground">Loading messages...</div>
+          </div>
+        ) : (
+          <>
+            {localMessages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                role={message.role}
+                content={message.content}
+              />
+            ))}
+            {isLoading && <TypingIndicator />}
+            {estimate && <EstimateDisplay estimate={estimate} onReset={handleReset} />}
+          </>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
