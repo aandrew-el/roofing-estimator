@@ -48,13 +48,32 @@ export function ChatInterface({
   // Database messages hook
   const { messages: dbMessages, addMessage, isLoading: messagesLoading } = useMessages(conversationId);
 
-  // Sync messages when conversation changes
+  // Handle conversation change - reset state
   useEffect(() => {
     if (conversationId !== activeConversationId) {
       setActiveConversationId(conversationId);
-      isFirstMessage.current = true;
+      setEstimate(null);
+      setInput('');
 
-      if (conversationId && dbMessages.length > 0) {
+      // For new chat (null conversationId), reset to initial message immediately
+      if (!conversationId) {
+        isFirstMessage.current = true;
+        setLocalMessages([
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: INITIAL_MESSAGE,
+          },
+        ]);
+      }
+    }
+  }, [conversationId, activeConversationId]);
+
+  // Sync messages from database when they load
+  useEffect(() => {
+    // Only sync if we have a conversation and messages have loaded
+    if (conversationId && !messagesLoading) {
+      if (dbMessages.length > 0) {
         // Load messages from database
         setLocalMessages(
           dbMessages.map((m) => ({
@@ -65,7 +84,8 @@ export function ChatInterface({
         );
         isFirstMessage.current = false;
       } else {
-        // Reset to initial state for new chat
+        // Existing conversation with no messages yet - show initial message
+        isFirstMessage.current = true;
         setLocalMessages([
           {
             id: 'initial',
@@ -74,10 +94,8 @@ export function ChatInterface({
           },
         ]);
       }
-      setEstimate(null);
-      setInput('');
     }
-  }, [conversationId, dbMessages, activeConversationId]);
+  }, [conversationId, dbMessages, messagesLoading]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
