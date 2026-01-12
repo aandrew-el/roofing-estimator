@@ -68,12 +68,6 @@ export function Sidebar({
         />
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="px-4 py-4">
-        <p className="text-[11px] text-sidebar-text-muted text-center">
-          Powered by AI
-        </p>
-      </div>
     </aside>
   );
 }
