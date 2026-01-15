@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ChatMessage } from './ChatMessage';
 import { TypingIndicator } from './TypingIndicator';
 import { EstimateDisplay } from './EstimateDisplay';
@@ -48,8 +47,18 @@ export function ChatInterface({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isFirstMessage = useRef(true);
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const newHeight = Math.min(textarea.scrollHeight, 200); // Max 200px (about 8 lines)
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, []);
 
   // Customer hook
   const { saveCustomer } = useCustomer();
@@ -135,10 +144,15 @@ export function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [localMessages, isLoading]);
 
-  // Focus input on mount and conversation change
+  // Focus textarea on mount and conversation change
   useEffect(() => {
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   }, [conversationId]);
+
+  // Adjust textarea height when input changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input, adjustTextareaHeight]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,13 +250,13 @@ export function ChatInterface({
     setInput('');
     setShowWelcome(true);
     isFirstMessage.current = true;
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   }, []);
 
   // Handle clicking an example prompt from WelcomeState
   const handlePromptClick = useCallback((prompt: string) => {
     setInput(prompt);
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   }, []);
 
   // Handle customer details save
@@ -301,14 +315,25 @@ export function ChatInterface({
       const prompt = `Based on my roof photo analysis:\n- Material: ${photoAnalysis.material}\n- Condition: ${photoAnalysis.condition}\n- Estimated area: ${photoAnalysis.estimatedAreaSqft ? `${photoAnalysis.estimatedAreaSqft} sq ft` : 'unknown'}\n\nPlease generate an estimate for this roof.`;
       setInput(prompt);
       setShowPhotoUpload(false);
-      inputRef.current?.focus();
+      textareaRef.current?.focus();
     }
   }, [getAnalysisSummary, photoAnalysis]);
+
+  // Handle Enter key (submit) vs Shift+Enter (new line)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() && !isLoading) {
+        handleSubmit(e as unknown as React.FormEvent);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto space-y-5">
         {messagesLoading && conversationId ? (
           <MessageSkeleton count={3} />
         ) : showWelcome && localMessages.length === 0 ? (
@@ -326,13 +351,14 @@ export function ChatInterface({
             {estimate && <EstimateDisplay estimate={estimate} onReset={handleReset} customerName={customerName || undefined} conversationId={conversationId} />}
           </>
         )}
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Photo Upload Panel */}
       {showPhotoUpload && !estimate && (
         <div className="px-4 pb-2">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium">Upload Roof Photo</p>
               <Button
@@ -394,31 +420,34 @@ export function ChatInterface({
       {/* Input area - iOS style */}
       {!estimate && (
         <div className="px-4 py-4 bg-background/80 backdrop-blur-sm">
-          <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl mx-auto bg-muted/50 dark:bg-muted/30 rounded-2xl px-2 py-1.5">
+          <form onSubmit={handleSubmit} className="flex items-end gap-3 max-w-3xl mx-auto bg-muted/50 dark:bg-muted/30 rounded-2xl px-2 py-2">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
+              className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-foreground mb-0.5"
               onClick={() => setShowPhotoUpload(!showPhotoUpload)}
               disabled={isLoading}
             >
               <Camera className="h-5 w-5" />
               <span className="sr-only">Upload photo</span>
             </Button>
-            <Input
-              ref={inputRef}
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Message..."
               disabled={isLoading}
-              className="flex-1 h-10 text-[15px] bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-muted-foreground px-0"
+              rows={1}
+              className="flex-1 min-h-[44px] max-h-[200px] text-[15px] bg-transparent border-0 focus:ring-0 focus:outline-none placeholder:text-muted-foreground resize-none py-2.5 px-1 leading-relaxed"
+              style={{ height: 'auto' }}
             />
             <Button
               type="submit"
               disabled={!input.trim() || isLoading}
               size="icon"
-              className="h-10 w-10 rounded-xl bg-accent hover:bg-accent-hover shrink-0 disabled:opacity-40 transition-all duration-200 active:scale-95"
+              className="h-10 w-10 rounded-xl bg-accent hover:bg-accent-hover shrink-0 disabled:opacity-40 transition-all duration-200 active:scale-95 mb-0.5"
             >
               <ArrowRight className="h-5 w-5 text-white" />
               <span className="sr-only">Send</span>
