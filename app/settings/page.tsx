@@ -15,12 +15,12 @@ export default function SettingsPage() {
       <header className="border-b bg-card">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+              <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="sr-only">Back to chat</span>
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <h1 className="text-xl font-semibold">Settings</h1>
           </div>
           <Button
