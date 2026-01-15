@@ -1,0 +1,351 @@
+import {
+  Body,
+  Container,
+  Head,
+  Heading,
+  Hr,
+  Html,
+  Preview,
+  Section,
+  Text,
+} from '@react-email/components';
+import * as React from 'react';
+import type { Estimate } from '@/lib/types';
+
+interface EstimateEmailProps {
+  customerName: string;
+  estimate: Estimate;
+}
+
+// Helper to format currency
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+// Helper to format numbers
+function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+export function EstimateEmail({ customerName, estimate }: EstimateEmailProps) {
+  const shingleTypeName =
+    estimate.project.shingleType === 'three-tab'
+      ? '3-Tab Asphalt'
+      : estimate.project.shingleType === 'architectural'
+      ? 'Architectural'
+      : 'Premium Designer';
+
+  const formattedDate = new Date(estimate.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return (
+    <Html>
+      <Head />
+      <Preview>Your roofing estimate: {formatCurrency(estimate.midEstimate)}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          {/* Header */}
+          <Section style={header}>
+            <Heading style={logo}>Roofing Estimator</Heading>
+          </Section>
+
+          {/* Greeting */}
+          <Section style={content}>
+            <Text style={greeting}>Hi {customerName},</Text>
+            <Text style={paragraph}>
+              Thank you for using Roofing Estimator. Here&apos;s your detailed estimate:
+            </Text>
+          </Section>
+
+          {/* Estimate ID and Date */}
+          <Section style={metaSection}>
+            <Text style={metaText}>
+              Estimate ID: {estimate.id}
+            </Text>
+            <Text style={metaText}>
+              Generated: {formattedDate}
+            </Text>
+          </Section>
+
+          {/* Estimate Range - Main highlight */}
+          <Section style={rangeCard}>
+            <Text style={rangeTitleWhite}>ESTIMATE RANGE</Text>
+            <Text style={rangeValueHighlight}>{formatCurrency(estimate.midEstimate)}</Text>
+            <Text style={rangeSubtext}>Expected Cost</Text>
+            <Hr style={rangeDivider} />
+            <Text style={rangeSecondary}>
+              Low: {formatCurrency(estimate.lowEstimate)} · High: {formatCurrency(estimate.highEstimate)}
+            </Text>
+          </Section>
+
+          {/* Project Summary */}
+          <Section style={card}>
+            <Text style={cardTitle}>PROJECT SUMMARY</Text>
+            <Text style={summaryLine}>
+              <strong>Location:</strong> {estimate.project.location}
+            </Text>
+            <Text style={summaryLine}>
+              <strong>Roof Area:</strong> {formatNumber(estimate.roofArea)} sq ft
+            </Text>
+            <Text style={summaryLine}>
+              <strong>Pitch:</strong> {estimate.project.pitch}
+            </Text>
+            <Text style={summaryLine}>
+              <strong>Material:</strong> {shingleTypeName}
+            </Text>
+            <Text style={summaryLine}>
+              <strong>Stories:</strong> {estimate.project.stories}
+            </Text>
+            <Text style={summaryLine}>
+              <strong>Squares:</strong> {estimate.squares}
+            </Text>
+          </Section>
+
+          {/* Line Items */}
+          <Section style={card}>
+            <Text style={cardTitle}>ITEMIZED BREAKDOWN</Text>
+            {estimate.lineItems.map((item, index) => (
+              <Section key={index} style={lineItemSection}>
+                <Text style={lineItemTitle}>{item.name}</Text>
+                {item.description && (
+                  <Text style={lineItemDescription}>{item.description}</Text>
+                )}
+                <Text style={lineItemPrice}>{formatCurrency(item.total)}</Text>
+              </Section>
+            ))}
+            <Hr style={divider} />
+            <Section style={subtotalSection}>
+              <Text style={subtotalLabel}>SUBTOTAL</Text>
+              <Text style={subtotalValue}>{formatCurrency(estimate.subtotal)}</Text>
+            </Section>
+          </Section>
+
+          {/* Disclaimer */}
+          <Section style={disclaimer}>
+            <Text style={disclaimerText}>
+              This estimate is provided for planning purposes only. Actual costs may vary
+              based on site inspection, material availability, and local market conditions.
+              Please obtain multiple quotes from licensed contractors before proceeding
+              with any work.
+            </Text>
+          </Section>
+
+          {/* Footer */}
+          <Section style={footer}>
+            <Text style={footerText}>
+              Questions? Simply reply to this email.
+            </Text>
+            <Text style={footerText}>
+              Generated by Roofing Estimator
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+// Styles - Mobile-first, single column layout
+const main = {
+  backgroundColor: '#f6f9fc',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, sans-serif',
+};
+
+const container = {
+  backgroundColor: '#ffffff',
+  margin: '0 auto',
+  padding: '0',
+  maxWidth: '600px',
+};
+
+const header = {
+  backgroundColor: '#1a1a2e',
+  padding: '20px 16px',
+  textAlign: 'center' as const,
+};
+
+const logo = {
+  color: '#ffffff',
+  fontSize: '20px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const content = {
+  padding: '20px 16px',
+};
+
+const greeting = {
+  fontSize: '18px',
+  fontWeight: '600',
+  color: '#1a1a2e',
+  marginBottom: '8px',
+};
+
+const paragraph = {
+  fontSize: '15px',
+  lineHeight: '24px',
+  color: '#525f7f',
+  marginTop: '0',
+};
+
+const metaSection = {
+  padding: '0 16px 16px 16px',
+  textAlign: 'center' as const,
+};
+
+const metaText = {
+  fontSize: '13px',
+  color: '#8898aa',
+  margin: '2px 0',
+};
+
+const card = {
+  backgroundColor: '#f8fafc',
+  borderRadius: '8px',
+  padding: '16px',
+  margin: '8px 16px 16px 16px',
+};
+
+const rangeCard = {
+  backgroundColor: '#1a1a2e',
+  borderRadius: '8px',
+  padding: '24px 16px',
+  margin: '8px 16px',
+  textAlign: 'center' as const,
+};
+
+const cardTitle = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#1a1a2e',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  margin: '0 0 12px 0',
+};
+
+const rangeTitleWhite = {
+  fontSize: '12px',
+  fontWeight: '600',
+  color: 'rgba(255,255,255,0.7)',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '1px',
+  margin: '0 0 8px 0',
+};
+
+const rangeValueHighlight = {
+  fontSize: '36px',
+  fontWeight: '700',
+  color: '#4ade80',
+  margin: '0',
+  lineHeight: '1.2',
+};
+
+const rangeSubtext = {
+  fontSize: '14px',
+  color: 'rgba(255,255,255,0.8)',
+  margin: '4px 0 0 0',
+};
+
+const rangeDivider = {
+  borderTop: '1px solid rgba(255,255,255,0.2)',
+  margin: '16px 0',
+};
+
+const rangeSecondary = {
+  fontSize: '15px',
+  color: '#ffffff',
+  margin: '0',
+};
+
+const summaryLine = {
+  fontSize: '15px',
+  color: '#1a1a2e',
+  margin: '8px 0',
+  lineHeight: '1.4',
+};
+
+const lineItemSection = {
+  borderBottom: '1px solid #e2e8f0',
+  paddingBottom: '12px',
+  marginBottom: '12px',
+};
+
+const lineItemTitle = {
+  fontSize: '15px',
+  fontWeight: '600',
+  color: '#1a1a2e',
+  margin: '0 0 2px 0',
+};
+
+const lineItemDescription = {
+  fontSize: '13px',
+  color: '#8898aa',
+  margin: '0 0 4px 0',
+};
+
+const lineItemPrice = {
+  fontSize: '16px',
+  fontWeight: '600',
+  color: '#2563eb',
+  margin: '0',
+};
+
+const divider = {
+  borderTop: '2px solid #1a1a2e',
+  margin: '8px 0 16px 0',
+};
+
+const subtotalSection = {
+  textAlign: 'right' as const,
+};
+
+const subtotalLabel = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#8898aa',
+  textTransform: 'uppercase' as const,
+  margin: '0 0 4px 0',
+};
+
+const subtotalValue = {
+  fontSize: '24px',
+  fontWeight: '700',
+  color: '#1a1a2e',
+  margin: '0',
+};
+
+const disclaimer = {
+  padding: '16px',
+  backgroundColor: '#fef3c7',
+  borderRadius: '8px',
+  margin: '8px 16px',
+};
+
+const disclaimerText = {
+  fontSize: '13px',
+  color: '#92400e',
+  lineHeight: '1.5',
+  margin: '0',
+};
+
+const footer = {
+  padding: '24px 16px',
+  textAlign: 'center' as const,
+};
+
+const footerText = {
+  fontSize: '13px',
+  color: '#8898aa',
+  margin: '4px 0',
+};
+
+export default EstimateEmail;

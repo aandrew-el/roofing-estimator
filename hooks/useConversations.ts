@@ -6,22 +6,33 @@ import { useSession } from './useSession';
 import type { Conversation, Message } from '@/lib/database.types';
 
 export function useConversations() {
-  const { sessionId, isLoading: sessionLoading } = useSession();
+  const { sessionId, contractorId, isAuthenticated, isLoading: sessionLoading } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all conversations for this session
+  // Fetch all conversations for this session or contractor
   const fetchConversations = useCallback(async () => {
-    if (!sessionId) return;
+    // Need either sessionId (anonymous) or contractorId (authenticated)
+    if (!sessionId && !contractorId) return;
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+
+      let query = supabase
         .from('conversations')
         .select('*')
-        .eq('session_id', sessionId)
         .order('updated_at', { ascending: false });
+
+      // Authenticated users: query by contractor_id
+      // Anonymous users: query by session_id
+      if (isAuthenticated && contractorId) {
+        query = query.eq('contractor_id', contractorId);
+      } else {
+        query = query.eq('session_id', sessionId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setConversations(data || []);
@@ -32,19 +43,26 @@ export function useConversations() {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, contractorId, isAuthenticated]);
 
   // Create a new conversation
   const createConversation = useCallback(async (title?: string): Promise<Conversation | null> => {
     if (!sessionId) return null;
 
     try {
+      const insertData: { session_id: string; title: string; contractor_id?: string } = {
+        session_id: sessionId,
+        title: title || 'New Estimate',
+      };
+
+      // If authenticated, also set contractor_id
+      if (isAuthenticated && contractorId) {
+        insertData.contractor_id = contractorId;
+      }
+
       const { data, error } = await supabase
         .from('conversations')
-        .insert({
-          session_id: sessionId,
-          title: title || 'New Estimate',
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -58,7 +76,7 @@ export function useConversations() {
       setError('Failed to create conversation');
       return null;
     }
-  }, [sessionId]);
+  }, [sessionId, contractorId, isAuthenticated]);
 
   // Update conversation title
   const updateConversationTitle = useCallback(async (id: string, title: string) => {

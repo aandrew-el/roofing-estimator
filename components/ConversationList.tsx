@@ -1,6 +1,7 @@
 'use client';
 
 import { ConversationItem } from './ConversationItem';
+import { MessageSquare } from 'lucide-react';
 import type { Conversation } from '@/lib/database.types';
 
 interface ConversationListProps {
@@ -8,6 +9,7 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename?: (id: string, newTitle: string) => void;
   isLoading: boolean;
 }
 
@@ -16,6 +18,7 @@ export function ConversationList({
   selectedId,
   onSelect,
   onDelete,
+  onRename,
   isLoading,
 }: ConversationListProps) {
   if (isLoading) {
@@ -32,12 +35,15 @@ export function ConversationList({
 
   if (conversations.length === 0) {
     return (
-      <div className="px-3 py-8 text-center">
-        <p className="text-sm text-sidebar-text-muted">
-          No conversations yet
+      <div className="px-3 py-8 text-center animate-in fade-in duration-300">
+        <div className="w-10 h-10 rounded-xl bg-sidebar-item-hover flex items-center justify-center mx-auto mb-3">
+          <MessageSquare className="w-5 h-5 text-sidebar-text-muted" />
+        </div>
+        <p className="text-sm text-sidebar-text-muted font-medium">
+          No estimates yet
         </p>
         <p className="text-xs text-sidebar-text-muted mt-1">
-          Start a new estimate to begin
+          Start chatting to create your first estimate
         </p>
       </div>
     );
@@ -52,6 +58,7 @@ export function ConversationList({
           isSelected={selectedId === conversation.id}
           onSelect={onSelect}
           onDelete={onDelete}
+          onRename={onRename}
         />
       ))}
     </div>

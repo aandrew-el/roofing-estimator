@@ -21,15 +21,23 @@ export function SidebarToggle({ isCollapsed, onToggle, className }: SidebarToggl
             size="icon"
             onClick={onToggle}
             className={cn(
-              'h-8 w-8 text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-item-hover',
+              'h-8 w-8 text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-item-hover relative',
               className
             )}
           >
-            {isCollapsed ? (
-              <PanelLeft className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
+            {/* Both icons always rendered, crossfade with opacity */}
+            <PanelLeft
+              className={cn(
+                "h-4 w-4 absolute transition-opacity duration-200 ease-out",
+                isCollapsed ? "opacity-100" : "opacity-0"
+              )}
+            />
+            <PanelLeftClose
+              className={cn(
+                "h-4 w-4 absolute transition-opacity duration-200 ease-out",
+                isCollapsed ? "opacity-0" : "opacity-100"
+              )}
+            />
             <span className="sr-only">
               {isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             </span>

@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { SYSTEM_PROMPT } from '@/lib/prompts';
 import { generateEstimate } from '@/lib/calculations';
 import { RoofingProject } from '@/lib/types';
+import { checkRateLimit, getRateLimitConfig } from '@/lib/rate-limit';
+import { getOptionalUser } from '@/lib/api-auth';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -63,6 +65,34 @@ function validateMessages(messages: unknown): IncomingMessage[] | null {
 }
 
 export async function POST(request: NextRequest) {
+  // Check authentication status for tiered rate limiting
+  const { user, isAuthenticated } = await getOptionalUser();
+
+  // Rate limiting - use user ID for authenticated users, IP for anonymous
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  const ip = forwardedFor?.split(',')[0]?.trim() ||
+             request.headers.get('x-real-ip') ||
+             'unknown';
+
+  // Use user ID as identifier if authenticated (more reliable than IP)
+  const rateLimitIdentifier = user?.id || ip;
+  const rateLimitConfig = getRateLimitConfig('chat', isAuthenticated);
+
+  const rateLimitResult = checkRateLimit(rateLimitIdentifier, rateLimitConfig);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a moment before trying again.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     // Parse request body
     let body: { messages?: unknown };
@@ -114,27 +144,47 @@ export async function POST(request: NextRequest) {
 
     // Check if AI has collected all data and is ready to generate estimate
     if (assistantMessage.includes('[READY_TO_ESTIMATE]')) {
-      // Parse the JSON data from the response
-      const jsonMatch = assistantMessage.match(/\[READY_TO_ESTIMATE\]\s*(\{[\s\S]*?\})/);
+      // Extract everything after [READY_TO_ESTIMATE] and find the JSON object
+      const markerIndex = assistantMessage.indexOf('[READY_TO_ESTIMATE]');
+      const afterMarker = assistantMessage.slice(markerIndex + '[READY_TO_ESTIMATE]'.length).trim();
 
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const projectData = JSON.parse(jsonMatch[1]) as RoofingProject;
-          const estimate = generateEstimate(projectData);
+      // Find the JSON by matching balanced braces
+      const jsonStart = afterMarker.indexOf('{');
+      if (jsonStart !== -1) {
+        let braceCount = 0;
+        let jsonEnd = -1;
 
-          // Return the message before the JSON, plus the estimate
-          const displayMessage = assistantMessage
-            .replace(/\[READY_TO_ESTIMATE\][\s\S]*$/, '')
-            .trim();
+        for (let i = jsonStart; i < afterMarker.length; i++) {
+          if (afterMarker[i] === '{') braceCount++;
+          else if (afterMarker[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
+        }
 
-          return NextResponse.json({
-            message: displayMessage || 'Generating your estimate now...',
-            estimate,
-            isComplete: true,
-          });
-        } catch (parseError) {
-          console.error('Failed to parse project data:', parseError);
-          // Continue with regular message if parsing fails
+        if (jsonEnd !== -1) {
+          const jsonString = afterMarker.slice(jsonStart, jsonEnd);
+          try {
+            const projectData = JSON.parse(jsonString) as RoofingProject;
+            const estimate = generateEstimate(projectData);
+
+            // Return the message before the marker, plus the estimate
+            const displayMessage = assistantMessage
+              .slice(0, markerIndex)
+              .trim();
+
+            return NextResponse.json({
+              message: displayMessage || 'Here is your detailed roofing estimate:',
+              estimate,
+              isComplete: true,
+            });
+          } catch (parseError) {
+            console.error('Failed to parse project data:', parseError, jsonString);
+            // Continue with regular message if parsing fails
+          }
         }
       }
     }

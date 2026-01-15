@@ -198,7 +198,10 @@ export function generateLineItems(
  */
 export function generateEstimate(project: RoofingProject): Estimate {
   // Calculate base metrics
-  const roofArea = calculateRoofArea(project.roofSqft, project.pitchMultiplier);
+  // For multi-story homes, roof footprint is approximately home sqft / stories
+  // (since floors stack on top of each other)
+  const roofFootprint = Math.round(project.roofSqft / project.stories);
+  const roofArea = calculateRoofArea(roofFootprint, project.pitchMultiplier);
   const squares = calculateSquares(roofArea);
   const roofPerimeter = estimateRoofPerimeter(roofArea);
   const regionalMultiplier = getRegionalMultiplier(project.location);

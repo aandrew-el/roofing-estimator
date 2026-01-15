@@ -1,36 +1,120 @@
 'use client';
 
-import { useRef } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Estimate } from '@/lib/types';
 import { formatCurrency, formatNumber } from '@/lib/calculations';
-import { Download, RotateCcw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useShareLink } from '@/hooks/useShareLink';
+import { Download, RotateCcw, Loader2, Share2, Copy, Check, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EstimateDisplayProps {
   estimate: Estimate;
   onReset: () => void;
+  customerName?: string;
+  conversationId?: string | null;
 }
 
-export function EstimateDisplay({ estimate, onReset }: EstimateDisplayProps) {
-  const estimateRef = useRef<HTMLDivElement>(null);
+export function EstimateDisplay({ estimate, onReset, customerName, conversationId }: EstimateDisplayProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const { createShareLink } = useShareLink();
+
+  const handleShare = async () => {
+    if (!conversationId) {
+      toast.error('Please save the estimate first before sharing.');
+      return;
+    }
+
+    setShowShareDialog(true);
+    setIsGeneratingLink(true);
+
+    try {
+      // Get the estimate's database ID
+      const { data: estimateRow } = await supabase
+        .from('estimates')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .single();
+
+      if (!estimateRow) {
+        throw new Error('Estimate not found');
+      }
+
+      // Create share link
+      const result = await createShareLink(estimateRow.id);
+      if (result) {
+        setShareUrl(result.url);
+      } else {
+        throw new Error('Failed to create share link');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to generate share link. Please try again.');
+      setShowShareDialog(false);
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleDownloadPDF = async () => {
-    if (!estimateRef.current) return;
+    setIsDownloading(true);
+    try {
+      const response = await fetch('/api/pdf/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estimate,
+          customerName,
+        }),
+      });
 
-    // Dynamically import html2pdf.js (client-side only)
-    const html2pdf = (await import('html2pdf.js')).default;
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
 
-    const element = estimateRef.current;
-    const opt = {
-      margin: 0.5,
-      filename: `roofing-estimate-${estimate.id}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const },
-    };
+      // Get the PDF blob
+      const blob = await response.blob();
 
-    html2pdf().set(opt).from(element).save();
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `roofing-estimate-${estimate.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF download error:', error);
+      toast.error('Failed to download PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const formattedDate = new Date(estimate.createdAt).toLocaleDateString('en-US', {
@@ -48,7 +132,7 @@ export function EstimateDisplay({ estimate, onReset }: EstimateDisplayProps) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6">
-      <Card className="max-w-2xl mx-auto" ref={estimateRef}>
+      <Card className="max-w-2xl mx-auto">
         <CardHeader className="border-b border-border">
           <div className="flex justify-between items-start">
             <div>
@@ -72,7 +156,7 @@ export function EstimateDisplay({ estimate, onReset }: EstimateDisplayProps) {
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
               Project Summary
             </h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-muted-foreground">Location:</span>
                 <span className="ml-2 font-medium">{estimate.project.location}</span>
@@ -158,7 +242,7 @@ export function EstimateDisplay({ estimate, onReset }: EstimateDisplayProps) {
               Estimate Range
             </h3>
             <div className="bg-muted/30 rounded-lg p-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                     Low
@@ -205,11 +289,83 @@ export function EstimateDisplay({ estimate, onReset }: EstimateDisplayProps) {
           <RotateCcw className="h-4 w-4" />
           New Estimate
         </Button>
-        <Button onClick={handleDownloadPDF} className="gap-2 bg-accent hover:bg-accent-hover">
-          <Download className="h-4 w-4" />
-          Download PDF
+        <Button
+          variant="outline"
+          onClick={handleShare}
+          className="gap-2"
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
+        <Button
+          onClick={handleDownloadPDF}
+          disabled={isDownloading}
+          className="gap-2 bg-accent hover:bg-accent-hover"
+        >
+          {isDownloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              Download PDF
+            </>
+          )}
         </Button>
       </div>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Estimate</DialogTitle>
+            <DialogDescription>
+              Anyone with this link can view the estimate.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {isGeneratingLink ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : shareUrl ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={shareUrl}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open(shareUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open in New Tab
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
